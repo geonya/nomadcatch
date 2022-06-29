@@ -10,10 +10,13 @@ const SERVER_URL =
 		? 'https://nomadcatch.herokuapp.com/'
 		: 'http://localhost:4444/';
 export default function Chat() {
+	const location = useLocation();
+
 	// video
 	const myVideoRef = useRef();
 	const peerVideoRef = useRef();
 
+	// canvas
 	const canvasBoardRef = useRef();
 	const cavasContainerRef = useRef();
 	const colorPickRefs = useRef([]);
@@ -28,15 +31,13 @@ export default function Chat() {
 		'#e84393',
 		'#2c3e50',
 	];
-
-	const location = useLocation();
 	const [name, setName] = useState('');
 	const [room, setRoom] = useState('');
 	const [users, setUsers] = useState([]);
 	const [messages, setMessages] = useState([]);
 	const [question, setQuestion] = useState('');
 	const { register, handleSubmit, setValue } = useForm();
-	//join
+
 	useEffect(() => {
 		const { name, room } = location.state;
 		socket = io(SERVER_URL);
@@ -195,10 +196,19 @@ export default function Chat() {
 			const stopPainting = () => {
 				painting = false;
 			};
+
+			// mouse event
 			canvasBoardRef.current.onmousemove = (ev) => onMouseMove(ev);
 			canvasBoardRef.current.onmousedown = () => startPainting();
 			canvasBoardRef.current.onmouseup = () => stopPainting();
 			canvasBoardRef.current.onmouseleave = () => stopPainting();
+
+			// touch event
+			canvasBoardRef.current.ontouchstart = () => startPainting();
+			canvasBoardRef.current.ontouchend = () => stopPainting();
+			canvasBoardRef.current.touchcancel = () => stopPainting();
+			canvasBoardRef.current.ontouchmove = (ev) => onMouseMove(ev);
+
 			if (colorPickRefs.current) {
 				colorPickRefs.current.map((element) =>
 					element.addEventListener('click', (event) => {
@@ -248,94 +258,222 @@ export default function Chat() {
 		setValue('message', '');
 	};
 
+	const messageEndRef = useRef();
+	useEffect(() => {
+		messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
+	}, [messages]);
 	return (
-		<div>
-			<div>
-				<div>
-					<h1>방 이름 : {room}</h1>
-					<h3>내 이름 : {name}</h3>
-					<a href='/'>나가기</a>
-				</div>
-				<div>
-					<div>
-						<Video ref={myVideoRef} autoPlay muted />
-					</div>
-					<div>
-						<button>Start</button>
-					</div>
-					<div>
-						<Video ref={peerVideoRef} autoPlay muted />
-					</div>
-				</div>
-				<div>
-					{messages.map((message, i) => (
-						<div key={i}>
-							<span>{message.text}</span>
-						</div>
-					))}
-				</div>
-				<form onSubmit={handleSubmit(onValid)}>
-					<input
-						{...register('message', { required: true })}
-						placeholder='메시지를 입력하세요.'
-					/>
-					<button>입력</button>
-				</form>
-			</div>
-			<div>
-				{users ? (
-					<div>
-						<h1>current users</h1>
-						{users.map(({ name }) => (
-							<div key={name}>{name}</div>
+		<Layout>
+			<Container>
+				<Header>
+					<TitleBox>
+						<h1>Nomad Catch</h1>
+						<h3>Room : {room}</h3>
+					</TitleBox>
+					{users ? (
+						<Users>
+							{users.map(({ name }) => (
+								<div key={name}>
+									<OnlineIcon />
+									<span>{name}</span>
+								</div>
+							))}
+						</Users>
+					) : null}
+
+					<OutButton>
+						<a href='/'>나가기</a>
+					</OutButton>
+				</Header>
+				<VideoContainer>
+					<VideoBox>
+						<video ref={myVideoRef} autoPlay muted />
+					</VideoBox>
+					<StartButton
+						onClick={() => {
+							socket.emit('question', room);
+							socket.emit('rtc_start', room);
+						}}
+					>
+						Start!
+					</StartButton>
+					<VideoBox>
+						<video ref={peerVideoRef} autoPlay muted />
+					</VideoBox>
+				</VideoContainer>
+				<CanvasContainer ref={cavasContainerRef}>
+					<CanvasBoard ref={canvasBoardRef} />
+					<ToolBox>
+						{question ? <Question>Q. {question}</Question> : null}
+					</ToolBox>
+					<ColorsPickBox>
+						{colors.map((color, i) => {
+							return (
+								<ColorPick
+									id={color}
+									key={i}
+									color={color}
+									ref={(element) => {
+										if (element) {
+											colorPickRefs.current[i] = element;
+										}
+									}}
+								/>
+							);
+						})}
+						<Eraser ref={eraserRef}>
+							<svg width='24' height='24' xmlns='http://www.w3.org/2000/svg'>
+								<path d='M5.662 23l-5.369-5.365c-.195-.195-.293-.45-.293-.707 0-.256.098-.512.293-.707l14.929-14.928c.195-.194.451-.293.707-.293.255 0 .512.099.707.293l7.071 7.073c.196.195.293.451.293.708 0 .256-.097.511-.293.707l-11.216 11.219h5.514v2h-12.343zm3.657-2l-5.486-5.486-1.419 1.414 4.076 4.072h2.829zm6.605-17.581l-10.677 10.68 5.658 5.659 10.676-10.682-5.657-5.657z' />
+							</svg>
+						</Eraser>
+					</ColorsPickBox>
+				</CanvasContainer>
+				<MessagesContainer>
+					<MessagesBox>
+						{messages.map((message, i) => (
+							<div key={i}>
+								<span>{message.user}</span>
+								<span>{message.text}</span>
+								<span>{message.time}</span>
+							</div>
 						))}
-					</div>
-				) : null}
-			</div>
-			<button
-				style={{ padding: 10, cursor: 'pointer', backgroundColor: 'red' }}
-				onClick={() => {
-					socket.emit('question', { isMe: true, room });
-					socket.emit('rtc_start', room);
-				}}
-			>
-				Game Start
-			</button>
-			<CanvasContainer ref={cavasContainerRef}>
-				<CanvasBoard ref={canvasBoardRef} />
-				<ToolBox>
-					{question ? <Question>Q. {question}</Question> : null}
-				</ToolBox>
-				<ColorsPickBox>
-					{colors.map((color, i) => {
-						return (
-							<ColorPick
-								id={color}
-								key={i}
-								color={color}
-								ref={(element) => {
-									if (element) {
-										colorPickRefs.current[i] = element;
-									}
-								}}
-							/>
-						);
-					})}
-					<Eraser ref={eraserRef}>
-						<svg width='24' height='24' xmlns='http://www.w3.org/2000/svg'>
-							<path d='M5.662 23l-5.369-5.365c-.195-.195-.293-.45-.293-.707 0-.256.098-.512.293-.707l14.929-14.928c.195-.194.451-.293.707-.293.255 0 .512.099.707.293l7.071 7.073c.196.195.293.451.293.708 0 .256-.097.511-.293.707l-11.216 11.219h5.514v2h-12.343zm3.657-2l-5.486-5.486-1.419 1.414 4.076 4.072h2.829zm6.605-17.581l-10.677 10.68 5.658 5.659 10.676-10.682-5.657-5.657z' />
-						</svg>
-					</Eraser>
-				</ColorsPickBox>
-			</CanvasContainer>
-		</div>
+						<div ref={messageEndRef} />
+					</MessagesBox>
+					<MessageForm onSubmit={handleSubmit(onValid)}>
+						<MessageInput
+							{...register('message', { required: true })}
+							placeholder='메시지를 입력하세요.'
+						/>
+						<MessageButton>
+							<svg
+								fill='none'
+								stroke='currentColor'
+								viewBox='0 0 24 24'
+								xmlns='http://www.w3.org/2000/svg'
+							>
+								<path
+									strokeLinecap='round'
+									strokeLinejoin='round'
+									strokeWidth='2'
+									d='M5 10l7-7m0 0l7 7m-7-7v18'
+								></path>
+							</svg>
+						</MessageButton>
+					</MessageForm>
+				</MessagesContainer>
+			</Container>
+		</Layout>
 	);
 }
 
-const Video = styled.video`
-	width: 200px;
-	height: 200px;
-	background-color: red;
+const Layout = styled.div`
+	width: 100%;
+	height: 100vh;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+`;
+const Container = styled.div`
+	width: 375px;
+	height: 667px;
+	border-radius: 20px;
+	box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+`;
+
+const Header = styled.div`
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background-color: blueviolet;
+	width: 100%;
+	padding: 10px 20px;
+	border-radius: 20px;
+	box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+	h1 {
+		font-size: 16px;
+		font-weight: 600;
+		color: white;
+	}
+`;
+const TitleBox = styled.div`
+	h3 {
+		margin-top: 5px;
+		text-align: center;
+		font-size: 10px;
+		color: white;
+	}
+`;
+const Users = styled.div`
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	grid-gap: 20px;
+	div {
+		display: flex;
+		align-items: center;
+		span {
+			font-size: 12px;
+			font-weight: 600;
+			color: white;
+		}
+	}
+`;
+const OnlineIcon = styled.div`
+	width: 5px;
+	height: 5px;
+	border-radius: 50%;
+	margin-right: 6px;
+	background-color: greenyellow;
+	box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+`;
+const OutButton = styled.button`
+	background-color: white;
+	color: blueviolet;
+	width: 35px;
+	height: 35px;
+	border-radius: 50%;
+	text-align: center;
+	font-size: 10px;
+	box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+`;
+
+const VideoContainer = styled.div`
+	width: 100%;
+	height: 150px;
+	display: flex;
+	justify-content: space-around;
+	align-items: center;
+`;
+
+const VideoBox = styled.div`
+	background-color: blueviolet;
+	width: 110px;
+	height: 110px;
+	border-radius: 50%;
+	z-index: 999;
+	bottom: -50px;
+	right: 0;
+	box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+	video {
+		width: 145px;
+		height: 145px;
+	}
+`;
+
+const StartButton = styled.button`
+	align-self: flex-end;
+	cursor: pointer;
+	background-color: tomato;
+	color: white;
+	width: 50px;
+	height: 50px;
+	border-radius: 50%;
+	text-align: center;
+	margin-bottom: 10px;
+	box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
 `;
 
 const CanvasContainer = styled.div`
@@ -393,4 +531,80 @@ const Question = styled.div`
 	justify-content: center;
 	align-items: center;
 	font-size: 13px;
+`;
+
+const MessagesContainer = styled.div`
+	margin-top: 5px;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	position: relative;
+`;
+
+const MessagesBox = styled.div`
+	margin-top: 19px;
+	width: 95%;
+	height: 170px;
+	padding: 0px 10px 58px 10px;
+	overflow-y: scroll;
+	border-radius: 18px;
+	div {
+		width: 100%;
+		display: grid;
+		grid-template-columns: 1fr 4fr 1fr;
+		grid-gap: 3px;
+		color: gray;
+		span:nth-child(1) {
+			align-self: flex-start;
+			color: blueviolet;
+			font-size: 12px;
+			font-weight: 600;
+		}
+		span:nth-child(2) {
+			align-self: center;
+			color: gray;
+			font-size: 13px;
+		}
+		span:nth-child(3) {
+			place-self: flex-end;
+			align-self: center;
+			color: gray;
+			font-size: 10px;
+		}
+	}
+`;
+const MessageForm = styled.form`
+	width: 95%;
+	position: absolute;
+	bottom: 10px;
+	left: 50%;
+	transform: translate(-50%, 0%);
+`;
+const MessageInput = styled.input`
+	margin-left: 10px;
+	width: 90%;
+	padding: 12px;
+	border-radius: 10px;
+	border: 1px solid rgba(0, 0, 0, 0.2);
+	box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+	font-size: 12px;
+`;
+const MessageButton = styled.button`
+	width: 35px;
+	height: 35px;
+	position: absolute;
+	right: 15px;
+	bottom: 2.5px;
+	background-color: blueviolet;
+	color: white;
+	border-radius: 50%;
+	box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	svg {
+		width: 18px;
+		height: 18px;
+	}
 `;

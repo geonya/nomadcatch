@@ -50,9 +50,11 @@ table {
   border-spacing: 0;
 }
 body {
+  width:100%;
   height:100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   line-height:1.2;
+  background: url('https://cdn.channel.io/plugin/images/standalone-pattern-bg.png') 0% 0% / 460px 864px repeat;
 }
 a {
 	text-decoration: none;
@@ -66,5 +68,6 @@ input {
 }
 button {
   all:unset;
+  cursor: pointer;
 }
 `;

@@ -22,7 +22,7 @@ export default function Join() {
 					{...register('room', { required: true })}
 					placeholder='Room Name'
 				/>
-				<button>입장</button>
+				<button>Enter</button>
 			</Form>
 		</Container>
 	);
@@ -46,17 +46,18 @@ const Form = styled.form`
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
+	font-size: 15px;
 	input {
 		width: 100%;
 		border: 1px solid gray;
-		padding: 10px;
+		padding: 10px 20px;
 		border-radius: 999px;
 		margin-bottom: 15px;
 	}
 	button {
 		cursor: pointer;
 		width: 100%;
-		padding: 10px;
+		padding: 10px 20px;
 		border-radius: 999px;
 		background-color: blueviolet;
 		color: white;
