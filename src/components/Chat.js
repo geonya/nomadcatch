@@ -31,7 +31,7 @@ export default function Chat() {
 		'#e84393',
 		'#2c3e50',
 	];
-	const [name, setName] = useState('');
+	
 	const [room, setRoom] = useState('');
 	const [users, setUsers] = useState([]);
 	const [messages, setMessages] = useState([]);
@@ -41,7 +41,6 @@ export default function Chat() {
 	useEffect(() => {
 		const { name, room } = location.state;
 		socket = io(SERVER_URL);
-		setName(name);
 		setRoom(room);
 
 		socket.emit('join', { name, room }, (error) => {
@@ -374,10 +373,14 @@ const Layout = styled.div`
 	align-items: center;
 `;
 const Container = styled.div`
-	width: 375px;
+	max-width: 375px;
+	width:100%;
 	height: 667px;
 	border-radius: 20px;
 	box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+	display:flex;
+	flex-direction:column;
+	align-items:center;
 `;
 
 const Header = styled.div`
