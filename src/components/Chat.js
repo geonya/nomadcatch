@@ -42,7 +42,6 @@ export default function Chat() {
 		const { name, room } = location.state;
 		socket = io(SERVER_URL);
 		setRoom(room);
-
 		socket.emit('join', { name, room }, (error) => {
 			if (error) {
 				console.error(error);
@@ -77,7 +76,7 @@ export default function Chat() {
 		peerConnection = new RTCPeerConnection();
 		const startMedia = async () => {
 			const getMedia = async () => {
-				const contraints = { audio: true, video: true };
+				const contraints = { audio: false, video: true };
 				try {
 					stream = await navigator.mediaDevices.getUserMedia(contraints);
 					if (myVideoRef.current) {
