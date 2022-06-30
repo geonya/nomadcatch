@@ -50,10 +50,10 @@ table {
   border-spacing: 0;
 }
 body {
-  overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   line-height:1.2;
   background: url('https://cdn.channel.io/plugin/images/standalone-pattern-bg.png') 0% 0% / 460px 864px repeat;
+  overflow-y: scroll;
 }
 a {
 	text-decoration: none;
