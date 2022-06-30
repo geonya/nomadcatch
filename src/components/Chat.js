@@ -279,7 +279,7 @@ export default function Chat() {
       if (ev.touches) {
         return {
           x: ev.touches[0].clientX - ev.target.parentNode.offsetLeft,
-          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight,
+          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 10,
         };
       }
       return { x: ev.offsetX, y: ev.offsetY };
@@ -426,16 +426,16 @@ export default function Chat() {
 }
 
 const Layout = styled.div`
-  width: 100%;
-  height: 100%;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden;
 `;
 const Container = styled.div`
-  max-width: 375px;
+  max-width: 350px;
   width: 100%;
-  height: 667px;
+  height: 600px;
   border-radius: 20px;
   box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
   display: flex;
