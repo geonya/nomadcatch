@@ -279,7 +279,7 @@ export default function Chat() {
       if (ev.touches) {
         return {
           x: ev.touches[0].clientX - ev.target.parentNode.offsetLeft,
-          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 10,
+          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 5,
         };
       }
       return { x: ev.offsetX, y: ev.offsetY };
@@ -426,7 +426,6 @@ export default function Chat() {
 }
 
 const Layout = styled.div`
-  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
