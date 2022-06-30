@@ -287,7 +287,7 @@ export default function Chat() {
       if (ev.touches) {
         return {
           x: ev.touches[0].clientX - ev.target.parentNode.offsetLeft,
-          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 9,
+          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 11,
         };
       }
       return { x: ev.offsetX, y: ev.offsetY };
@@ -347,6 +347,11 @@ export default function Chat() {
   useEffect(() => {
     messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const pageEndRef = useRef();
+  useEffect(() => {
+    pageEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, []);
   return (
     <Layout>
       <Container>
@@ -533,6 +538,7 @@ export default function Chat() {
           </MessageForm>
         </MessagesContainer>
       </Container>
+      <div ref={pageEndRef} />
     </Layout>
   );
 }
