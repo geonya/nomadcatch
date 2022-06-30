@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 import styled from 'styled-components';
+import queryString from 'query-string';
 
 let socket;
 const SERVER_URL =
@@ -40,19 +41,19 @@ export default function Chat() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const { name, room } = location.state;
+    const { name, room } = queryString.parse(location.search);
     socket = io(SERVER_URL);
     setRoom(room);
     setName(name);
     socket.emit('join', { name, room }, (error) => {
       socket.emit('rtc_start', room);
       if (error) {
-        alert(error);
-        navigate('/');
-        console.error(error);
+        // alert(error);
+        // navigate('/');
+        // console.error(error);
       }
     });
-  }, [location.state, navigate]);
+  }, [location.search, navigate]);
 
   // Room Data
   useEffect(() => {
@@ -84,7 +85,7 @@ export default function Chat() {
         socket.emit('correct', name);
       }
     });
-  }, [question]);
+  }, [question, hostName]);
 
   // media setup
   useEffect(() => {
