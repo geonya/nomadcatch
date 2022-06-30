@@ -287,7 +287,7 @@ export default function Chat() {
       if (ev.touches) {
         return {
           x: ev.touches[0].clientX - ev.target.parentNode.offsetLeft,
-          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 20,
+          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 25,
         };
       }
       return { x: ev.offsetX, y: ev.offsetY };
@@ -455,10 +455,9 @@ export default function Chat() {
               ))}
             </Users>
           ) : null}
-
-          <OutButton>
-            <a href='/'>나가기</a>
-          </OutButton>
+          <a href='/'>
+            <OutButton>Exit</OutButton>
+          </a>
         </Header>
         <VideoContainer>
           <VideoBox>
