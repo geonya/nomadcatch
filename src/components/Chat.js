@@ -52,7 +52,7 @@ export default function Chat() {
         console.error(error);
       }
     });
-  }, [location.state]);
+  }, [location.state, navigate]);
 
   //message
   useEffect(() => {
