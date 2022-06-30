@@ -287,7 +287,7 @@ export default function Chat() {
       if (ev.touches) {
         return {
           x: ev.touches[0].clientX - ev.target.parentNode.offsetLeft,
-          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 15,
+          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 20,
         };
       }
       return { x: ev.offsetX, y: ev.offsetY };
