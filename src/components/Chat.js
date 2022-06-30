@@ -54,20 +54,37 @@ export default function Chat() {
     });
   }, [location.state, navigate]);
 
-  //message
+  // Room Data
   useEffect(() => {
     socket.on('message', (message) => {
       setMessages((messages) => [...messages, message]);
-    });
-    socket.on('roomData', ({ room, users }) => {
-      setRoom(room);
-      setUsers(users);
     });
     socket.on('question', ({ question, name }) => {
       setHostName(name);
       setQuestion(question);
     });
   }, []);
+
+  // Room Data
+
+  useEffect(() => {
+    socket.on('roomData', ({ room, users }) => {
+      setRoom(room);
+      setUsers(users);
+    });
+  }, []);
+
+  // Question Answer
+
+  useEffect(() => {
+    socket.on('check-answer', ({ message, name }) => {
+      if (!message || !question) return;
+      if (hostName === name) return;
+      if (message.includes(question)) {
+        socket.emit('correct', name);
+      }
+    });
+  }, [question, hostName]);
 
   // media setup
   useEffect(() => {
@@ -122,7 +139,7 @@ export default function Chat() {
       dataChannel.onmessage = (event) => {
         console.log('data receiving...');
         const parsed = JSON.parse(event.data);
-        draw(parsed.payload.data, parsed.payload.painting);
+        peerPainting(parsed.payload);
       };
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
@@ -138,7 +155,7 @@ export default function Chat() {
           dataChannel.onmessage = (event) => {
             console.log('data receiving...');
             const parsed = JSON.parse(event.data);
-            draw(parsed.payload.data, parsed.payload.painting);
+            peerPainting(parsed.payload);
           };
         }
       });
@@ -169,49 +186,24 @@ export default function Chat() {
 
     const makeCanvas = () => {
       context = canvasBoardRef.current.getContext('2d');
+      context.lineCap = 'round';
 
       canvasBoardRef.current.width = cavasContainerRef.current.clientWidth;
       canvasBoardRef.current.height = cavasContainerRef.current.clientHeight;
 
-      const onMouseMove = (event) => {
-        if (!canvasBoardRef.current) return;
-        if (!context) return;
-
-        const data = {
-          x: event.offsetX,
-          y: event.offsetY,
-          color: pickedColor,
-          lineWidth,
-          lineCap: 'round',
-        };
-
-        draw(data, painting);
-
-        if (data && dataChannel) {
-          dataChannel.send(
-            JSON.stringify({ type: 'canvas', payload: { data, painting } })
-          );
-        }
-      };
-
-      const startPainting = () => {
-        painting = true;
-      };
-      const stopPainting = () => {
-        painting = false;
-      };
-
+      if (!canvasBoardRef.current) return;
+      if (!context) return;
       // mouse event
-      canvasBoardRef.current.onmousemove = (ev) => onMouseMove(ev);
-      canvasBoardRef.current.onmousedown = () => startPainting();
-      canvasBoardRef.current.onmouseup = () => stopPainting();
-      canvasBoardRef.current.onmouseleave = () => stopPainting();
+
+      canvasBoardRef.current.addEventListener('mousedown', readyPainting);
+      canvasBoardRef.current.addEventListener('mousemove', beginPainting);
+      canvasBoardRef.current.addEventListener('mouseup', stopPainting);
+      canvasBoardRef.current.addEventListener('mouseout', stopPainting);
 
       // touch event
-      canvasBoardRef.current.ontouchstart = () => startPainting();
-      canvasBoardRef.current.ontouchend = () => stopPainting();
-      canvasBoardRef.current.touchcancel = () => stopPainting();
-      canvasBoardRef.current.ontouchmove = (ev) => onMouseMove(ev);
+      canvasBoardRef.current.addEventListener('touchstart', readyPainting);
+      canvasBoardRef.current.addEventListener('touchmove', beginPainting);
+      canvasBoardRef.current.addEventListener('touchend', stopPainting);
 
       if (colorPickRefs.current) {
         colorPickRefs.current.map((element) =>
@@ -231,19 +223,81 @@ export default function Chat() {
       }
     };
 
-    function draw(data, painting) {
+    function readyPainting(ev) {
+      ev.preventDefault();
+      const mousePos = getMosuePositionOnCanvas(ev);
+      context.beginPath();
+      context.moveTo(mousePos.x, mousePos.y);
+      context.lineWidth = lineWidth;
+      context.strokeStyle = pickedColor;
+      painting = true;
+      const data = {
+        x: mousePos.x,
+        y: mousePos.y,
+        lineWidth,
+        color: pickedColor,
+        painting: false,
+      };
+      if (dataChannel) {
+        console.log('send data');
+        dataChannel.send(
+          JSON.stringify({ type: 'ready', payload: { ...data } })
+        );
+      }
+    }
+
+    function beginPainting(ev) {
+      ev.preventDefault();
+      if (painting) {
+        const mousePos = getMosuePositionOnCanvas(ev);
+        context.lineTo(mousePos.x, mousePos.y);
+        context.stroke();
+        const data = {
+          x: mousePos.x,
+          y: mousePos.y,
+          lineWidth,
+          color: pickedColor,
+          painting: true,
+        };
+        if (dataChannel) {
+          dataChannel.send(
+            JSON.stringify({ type: 'begin', payload: { ...data } })
+          );
+        }
+      }
+    }
+
+    function stopPainting(ev) {
+      ev.preventDefault();
+      if (painting) {
+        context.stroke();
+      }
+      painting = false;
+    }
+
+    function getMosuePositionOnCanvas(ev) {
+      if (ev.touches) {
+        return {
+          x: ev.touches[0].clientX - ev.target.parentNode.offsetLeft,
+          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight,
+        };
+      }
+      return { x: ev.offsetX, y: ev.offsetY };
+    }
+    function peerPainting(payload) {
       if (!context) return;
-      context.strokeStyle = data.color;
-      context.lineWidth = data.lineWidth;
-      context.lineCap = data.lineCap;
-      if (!painting) {
+      context.strokeStyle = payload.color;
+      context.lineWidth = payload.lineWidth;
+      context.lineCap = payload.lineCap;
+      if (!payload.painting) {
         context.beginPath();
-        context.moveTo(data.x, data.y);
+        context.moveTo(payload.x, payload.y);
       } else {
-        context.lineTo(data.x, data.y);
+        context.lineTo(payload.x, payload.y);
         context.stroke();
       }
     }
+
     function canvasClear() {
       if (!context) return;
       if (!canvasBoardRef.current) return;
@@ -254,6 +308,7 @@ export default function Chat() {
         canvasBoardRef.current.height
       );
     }
+
     makeCanvas();
   }, []);
 
@@ -492,6 +547,7 @@ const CanvasContainer = styled.div`
   height: 250px;
   border-radius: 18px;
   position: relative;
+  background-color: white;
 `;
 const CanvasBoard = styled.canvas``;
 
