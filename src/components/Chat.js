@@ -37,6 +37,9 @@ export default function Chat() {
   const [users, setUsers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [question, setQuestion] = useState('');
+  const [myMuted, setMyMuted] = useState(false);
+  const [peerMuted, setPeerMuted] = useState(false);
+  const [myStream, setMyStream] = useState();
   const { register, handleSubmit, setValue } = useForm();
   const navigate = useNavigate();
 
@@ -89,8 +92,8 @@ export default function Chat() {
 
   // media setup
   useEffect(() => {
-    let peerConnection;
     let stream;
+    let peerConnection;
     let dataChannel;
     let context;
     let painting = false;
@@ -100,12 +103,13 @@ export default function Chat() {
     peerConnection = new RTCPeerConnection();
     const startMedia = async () => {
       const getMedia = async () => {
-        const contraints = { audio: false, video: { facingMode: 'user' } };
+        const contraints = { audio: true, video: { facingMode: 'user' } };
         try {
           stream = await navigator.mediaDevices.getUserMedia(contraints);
           if (myVideoRef.current) {
             myVideoRef.current.srcObject = stream;
           }
+          setMyStream(stream);
         } catch (error) {
           console.error(error);
         }
@@ -128,6 +132,9 @@ export default function Chat() {
         peerVideoRef.current.srcObject = streams[0];
       }
     };
+
+    myVideoRef.current.addEventListener('click', handleCameraOut);
+
     socket.on('rtc_start', async (room) => {
       canvasClear();
       console.log('RTC Connection Start!');
@@ -310,6 +317,12 @@ export default function Chat() {
       );
     }
 
+    function handleCameraOut() {
+      stream
+        .getVideoTracks()
+        .forEach((track) => (track.enabled = !track.enabled));
+    }
+
     makeCanvas();
   }, []);
 
@@ -317,6 +330,18 @@ export default function Chat() {
     socket.emit('sendMessage', message);
     setValue('message', '');
   };
+
+  function handleMyMuted() {
+    if (myStream) {
+      myStream
+        .getAudioTracks()
+        .forEach((track) => (track.enabled = !track.enabled));
+    }
+    setMyMuted((prev) => !prev);
+  }
+  function handlePeerMuted() {
+    setPeerMuted((prev) => !prev);
+  }
 
   const messageEndRef = useRef();
   useEffect(() => {
@@ -332,10 +357,95 @@ export default function Chat() {
           </TitleBox>
           {users ? (
             <Users>
-              {users.map(({ name }) => (
-                <div key={name}>
-                  <OnlineIcon />
-                  <span>{name}</span>
+              {users.map(({ name: username }) => (
+                <div key={username}>
+                  {name === username ? (
+                    <>
+                      <OnlineIcon />
+                      <span>me</span>
+                      <button onClick={() => handleMyMuted()}>
+                        {myMuted ? (
+                          <svg
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                            xmlns='http://www.w3.org/2000/svg'
+                          >
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth='2'
+                              d='M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z'
+                              clipRule='evenodd'
+                            ></path>
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth='2'
+                              d='M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2'
+                            ></path>
+                          </svg>
+                        ) : (
+                          <svg
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                            xmlns='http://www.w3.org/2000/svg'
+                          >
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth='2'
+                              d='M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z'
+                            ></path>
+                          </svg>
+                        )}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <OnlineIcon />
+                      <span>{username}</span>
+                      <button onClick={() => handlePeerMuted()}>
+                        {peerMuted ? (
+                          <svg
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                            xmlns='http://www.w3.org/2000/svg'
+                          >
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth='2'
+                              d='M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z'
+                              clipRule='evenodd'
+                            ></path>
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth='2'
+                              d='M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2'
+                            ></path>
+                          </svg>
+                        ) : (
+                          <svg
+                            fill='none'
+                            stroke='currentColor'
+                            viewBox='0 0 24 24'
+                            xmlns='http://www.w3.org/2000/svg'
+                          >
+                            <path
+                              strokeLinecap='round'
+                              strokeLinejoin='round'
+                              strokeWidth='2'
+                              d='M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z'
+                            ></path>
+                          </svg>
+                        )}
+                      </button>
+                    </>
+                  )}
                 </div>
               ))}
             </Users>
@@ -347,7 +457,7 @@ export default function Chat() {
         </Header>
         <VideoContainer>
           <VideoBox>
-            <video ref={myVideoRef} autoPlay muted />
+            <video ref={myVideoRef} autoPlay muted={myMuted} />
           </VideoBox>
           <StartButton
             onClick={() => {
@@ -358,7 +468,7 @@ export default function Chat() {
             Start!
           </StartButton>
           <VideoBox>
-            <video ref={peerVideoRef} autoPlay muted />
+            <video ref={peerVideoRef} autoPlay muted={peerMuted} />
           </VideoBox>
         </VideoContainer>
         <CanvasContainer ref={cavasContainerRef}>
@@ -431,7 +541,7 @@ const Layout = styled.div`
   margin: 0 auto;
   max-width: 350px;
   width: 100%;
-  height: 640px;
+  height: 645px;
 `;
 const Container = styled.div`
   margin: auto;
@@ -461,7 +571,7 @@ const Header = styled.div`
 const TitleBox = styled.div`
   h3 {
     margin-top: 5px;
-    text-align: center;
+    margin-left: 10px;
     font-size: 10px;
     color: white;
   }
@@ -469,14 +579,28 @@ const TitleBox = styled.div`
 const Users = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-gap: 20px;
+  grid-gap: 15px;
   div {
     display: flex;
     align-items: center;
     span {
+      max-width: 50px;
+      word-break: break-all;
       font-size: 12px;
       font-weight: 600;
       color: white;
+    }
+    button {
+      margin-left: 5px;
+      display: flex;
+      align-items: center;
+      color: white;
+      width: 16px;
+      height: 16px;
+      svg {
+        width: 16px;
+        height: 16px;
+      }
     }
   }
 `;
@@ -521,8 +645,9 @@ const VideoBox = styled.div`
   align-items: center;
   overflow: hidden;
   video {
-    width: 145px;
-    height: 145px;
+    width: 149px;
+    height: 149px;
+    cursor: pointer;
   }
 `;
 
@@ -607,16 +732,16 @@ const MessagesContainer = styled.div`
 `;
 
 const MessagesBox = styled.div`
-  margin-top: 19px;
+  margin-top: 13px;
   width: 95%;
   height: 170px;
-  padding: 0px 10px 58px 10px;
+  padding: 0px 10px 56px 10px;
   overflow-y: scroll;
   border-radius: 18px;
   div {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 5fr 1fr;
+    grid-template-columns: 1fr 6fr 1fr;
     grid-gap: 3px;
     color: gray;
     span:nth-child(1) {
