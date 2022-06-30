@@ -51,9 +51,9 @@ export default function Chat() {
     socket.emit('join', { name, room }, (error) => {
       socket.emit('rtc_start', room);
       if (error) {
-        // alert(error);
-        // navigate('/');
-        // console.error(error);
+        alert(error);
+        navigate('/');
+        console.error(error);
       }
     });
   }, [location.search, navigate]);
@@ -287,7 +287,7 @@ export default function Chat() {
       if (ev.touches) {
         return {
           x: ev.touches[0].clientX - ev.target.parentNode.offsetLeft,
-          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 11,
+          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 15,
         };
       }
       return { x: ev.offsetX, y: ev.offsetY };
@@ -585,12 +585,12 @@ const TitleBox = styled.div`
 const Users = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-gap: 15px;
+  grid-gap: 13px;
   div {
     display: flex;
     align-items: center;
     span {
-      max-width: 50px;
+      max-width: 40px;
       word-break: break-all;
       font-size: 12px;
       font-weight: 600;
