@@ -84,7 +84,7 @@ export default function Chat() {
         socket.emit('correct', name);
       }
     });
-  }, [question, hostName]);
+  }, [question]);
 
   // media setup
   useEffect(() => {
@@ -279,7 +279,7 @@ export default function Chat() {
       if (ev.touches) {
         return {
           x: ev.touches[0].clientX - ev.target.parentNode.offsetLeft,
-          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 8,
+          y: ev.touches[0].clientY - ev.target.parentNode.offsetHeight + 9,
         };
       }
       return { x: ev.offsetX, y: ev.offsetY };
@@ -351,6 +351,7 @@ export default function Chat() {
           <StartButton
             onClick={() => {
               socket.emit('question', { room, name });
+              socket.emit('rtc_start', room);
             }}
           >
             Start!
@@ -614,7 +615,7 @@ const MessagesBox = styled.div`
   div {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 4fr 1fr;
+    grid-template-columns: 1fr 5fr 1fr;
     grid-gap: 3px;
     color: gray;
     span:nth-child(1) {
