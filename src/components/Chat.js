@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
-import { useLocation } from "react-router-dom";
-import io from "socket.io-client";
-import styled from "styled-components";
+import { useEffect, useRef, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useLocation } from 'react-router-dom';
+import io from 'socket.io-client';
+import styled from 'styled-components';
 
 let socket;
 const SERVER_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://nomadcatch.herokuapp.com/"
-    : "http://localhost:4444/";
+  process.env.NODE_ENV === 'production'
+    ? 'https://nomadcatch.herokuapp.com/'
+    : 'http://localhost:4444/';
 export default function Chat() {
   const location = useLocation();
   // video
@@ -21,28 +21,34 @@ export default function Chat() {
   const colorPickRefs = useRef([]);
   const eraserRef = useRef();
   const colors = [
-    "#c0392b",
-    "#e67e22",
-    "#f1c40f",
-    "#2ecc71",
-    "#3498db",
-    "blueviolet",
-    "#e84393",
-    "#2c3e50",
+    '#c0392b',
+    '#e67e22',
+    '#f1c40f',
+    '#2ecc71',
+    '#3498db',
+    'blueviolet',
+    '#e84393',
+    '#2c3e50',
   ];
-
-  const [room, setRoom] = useState("");
+  const [name, setName] = useState('');
+  const [hostName, setHostName] = useState('');
+  const [room, setRoom] = useState('');
   const [users, setUsers] = useState([]);
   const [messages, setMessages] = useState([]);
-  const [question, setQuestion] = useState("");
+  const [question, setQuestion] = useState('');
   const { register, handleSubmit, setValue } = useForm();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const { name, room } = location.state;
     socket = io(SERVER_URL);
     setRoom(room);
-    socket.emit("join", { name, room }, (error) => {
+    setName(name);
+    socket.emit('join', { name, room }, (error) => {
+      socket.emit('rtc_start', room);
       if (error) {
+        alert(error);
+        navigate('/');
         console.error(error);
       }
     });
@@ -50,14 +56,15 @@ export default function Chat() {
 
   //message
   useEffect(() => {
-    socket.on("message", (message) => {
+    socket.on('message', (message) => {
       setMessages((messages) => [...messages, message]);
     });
-    socket.on("roomData", ({ room, users }) => {
+    socket.on('roomData', ({ room, users }) => {
       setRoom(room);
       setUsers(users);
     });
-    socket.on("question", (question) => {
+    socket.on('question', ({ question, name }) => {
+      setHostName(name);
       setQuestion(question);
     });
   }, []);
@@ -69,13 +76,13 @@ export default function Chat() {
     let dataChannel;
     let context;
     let painting = false;
-    let pickedColor = "#2c3e50";
+    let pickedColor = '#2c3e50';
     let lineWidth = 4;
 
     peerConnection = new RTCPeerConnection();
     const startMedia = async () => {
       const getMedia = async () => {
-        const contraints = { audio: false, video: { facingMode: "user" } };
+        const contraints = { audio: false, video: { facingMode: 'user' } };
         try {
           stream = await navigator.mediaDevices.getUserMedia(contraints);
           if (myVideoRef.current) {
@@ -103,65 +110,65 @@ export default function Chat() {
         peerVideoRef.current.srcObject = streams[0];
       }
     };
-    socket.on("rtc_start", async (room) => {
+    socket.on('rtc_start', async (room) => {
       canvasClear();
-      console.log("RTC Connection Start!");
-      peerConnection.addEventListener("icecandidate", ({ candidate }) => {
-        console.log("candidate finish");
-        socket.emit("candidate", { candidate, room });
+      console.log('RTC Connection Start!');
+      peerConnection.addEventListener('icecandidate', ({ candidate }) => {
+        console.log('candidate finish');
+        socket.emit('candidate', { candidate, room });
       });
-      dataChannel = peerConnection.createDataChannel("canvas");
+      dataChannel = peerConnection.createDataChannel('canvas');
 
       dataChannel.onmessage = (event) => {
-        console.log("data receiving...");
+        console.log('data receiving...');
         const parsed = JSON.parse(event.data);
         draw(parsed.payload.data, parsed.payload.painting);
       };
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
-      socket.emit("offer", { offer, room });
-      console.log("send the offer");
+      socket.emit('offer', { offer, room });
+      console.log('send the offer');
     });
-    socket.on("offer", async ({ offer, room }) => {
+    socket.on('offer', async ({ offer, room }) => {
       canvasClear();
-      peerConnection.addEventListener("datachannel", (event) => {
-        console.log("receive datachannel");
+      peerConnection.addEventListener('datachannel', (event) => {
+        console.log('receive datachannel');
         dataChannel = event.channel;
         if (dataChannel) {
           dataChannel.onmessage = (event) => {
-            console.log("data receiving...");
+            console.log('data receiving...');
             const parsed = JSON.parse(event.data);
             draw(parsed.payload.data, parsed.payload.painting);
           };
         }
       });
       await peerConnection.setRemoteDescription(offer);
-      console.log("receive offer");
+      console.log('receive offer');
       const answer = await peerConnection.createAnswer();
       await peerConnection.setLocalDescription(answer);
-      socket.emit("answer", { answer, room });
-      console.log("send answer!");
+      socket.emit('answer', { answer, room });
+      console.log('send answer!');
     });
 
-    socket.on("answer", async ({ answer, room }) => {
-      peerConnection.addEventListener("icecandidate", ({ candidate }) => {
-        console.log("candidate finish");
-        socket.emit("candidate", { candidate, room });
+    socket.on('answer', async ({ answer, room }) => {
+      peerConnection.addEventListener('icecandidate', ({ candidate }) => {
+        console.log('candidate finish');
+        socket.emit('candidate', { candidate, room });
       });
-      console.log("receive answer");
+      console.log('receive answer');
       await peerConnection.setRemoteDescription(answer);
     });
 
-    socket.on("candidate", async (candidate) => {
-      console.log("receive candidate !");
+    socket.on('candidate', async (candidate) => {
+      console.log('receive candidate !');
       if (candidate) {
         await peerConnection.addIceCandidate(candidate);
-        console.log("🚀 add ice candidate peer connection finish 🚀 ");
+        console.log('🚀 add ice candidate peer connection finish 🚀 ');
       }
     });
 
     const makeCanvas = () => {
-      context = canvasBoardRef.current.getContext("2d");
+      context = canvasBoardRef.current.getContext('2d');
 
       canvasBoardRef.current.width = cavasContainerRef.current.clientWidth;
       canvasBoardRef.current.height = cavasContainerRef.current.clientHeight;
@@ -175,14 +182,14 @@ export default function Chat() {
           y: event.offsetY,
           color: pickedColor,
           lineWidth,
-          lineCap: "round",
+          lineCap: 'round',
         };
 
         draw(data, painting);
 
         if (data && dataChannel) {
           dataChannel.send(
-            JSON.stringify({ type: "canvas", payload: { data, painting } })
+            JSON.stringify({ type: 'canvas', payload: { data, painting } })
           );
         }
       };
@@ -208,7 +215,7 @@ export default function Chat() {
 
       if (colorPickRefs.current) {
         colorPickRefs.current.map((element) =>
-          element.addEventListener("click", (event) => {
+          element.addEventListener('click', (event) => {
             lineWidth = 4;
             if (event.target) {
               pickedColor = event.target.id;
@@ -218,7 +225,7 @@ export default function Chat() {
       }
       if (eraserRef.current) {
         eraserRef.current.onclick = () => {
-          pickedColor = "white";
+          pickedColor = 'white';
           lineWidth = 20;
         };
       }
@@ -251,13 +258,13 @@ export default function Chat() {
   }, []);
 
   const onValid = ({ message }) => {
-    socket.emit("sendMessage", message);
-    setValue("message", "");
+    socket.emit('sendMessage', message);
+    setValue('message', '');
   };
 
   const messageEndRef = useRef();
   useEffect(() => {
-    messageEndRef.current.scrollIntoView({ behavior: "smooth" });
+    messageEndRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   return (
     <Layout>
@@ -279,7 +286,7 @@ export default function Chat() {
           ) : null}
 
           <OutButton>
-            <a href="/">나가기</a>
+            <a href='/'>나가기</a>
           </OutButton>
         </Header>
         <VideoContainer>
@@ -288,8 +295,7 @@ export default function Chat() {
           </VideoBox>
           <StartButton
             onClick={() => {
-              socket.emit("question", room);
-              socket.emit("rtc_start", room);
+              socket.emit('question', { room, name });
             }}
           >
             Start!
@@ -301,7 +307,7 @@ export default function Chat() {
         <CanvasContainer ref={cavasContainerRef}>
           <CanvasBoard ref={canvasBoardRef} />
           <ToolBox>
-            {question ? <Question>Q. {question}</Question> : null}
+            {name === hostName ? <Question>Q. {question}</Question> : null}
           </ToolBox>
           <ColorsPickBox>
             {colors.map((color, i) => {
@@ -319,8 +325,8 @@ export default function Chat() {
               );
             })}
             <Eraser ref={eraserRef}>
-              <svg width="24" height="24" xmlns="http://www.w3.org/2000/svg">
-                <path d="M5.662 23l-5.369-5.365c-.195-.195-.293-.45-.293-.707 0-.256.098-.512.293-.707l14.929-14.928c.195-.194.451-.293.707-.293.255 0 .512.099.707.293l7.071 7.073c.196.195.293.451.293.708 0 .256-.097.511-.293.707l-11.216 11.219h5.514v2h-12.343zm3.657-2l-5.486-5.486-1.419 1.414 4.076 4.072h2.829zm6.605-17.581l-10.677 10.68 5.658 5.659 10.676-10.682-5.657-5.657z" />
+              <svg width='24' height='24' xmlns='http://www.w3.org/2000/svg'>
+                <path d='M5.662 23l-5.369-5.365c-.195-.195-.293-.45-.293-.707 0-.256.098-.512.293-.707l14.929-14.928c.195-.194.451-.293.707-.293.255 0 .512.099.707.293l7.071 7.073c.196.195.293.451.293.708 0 .256-.097.511-.293.707l-11.216 11.219h5.514v2h-12.343zm3.657-2l-5.486-5.486-1.419 1.414 4.076 4.072h2.829zm6.605-17.581l-10.677 10.68 5.658 5.659 10.676-10.682-5.657-5.657z' />
               </svg>
             </Eraser>
           </ColorsPickBox>
@@ -339,21 +345,21 @@ export default function Chat() {
 
           <MessageForm onSubmit={handleSubmit(onValid)}>
             <MessageInput
-              {...register("message", { required: true })}
-              placeholder="메시지를 입력하세요."
+              {...register('message', { required: true })}
+              placeholder='메시지를 입력하세요.'
             />
             <MessageButton>
               <svg
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
+                fill='none'
+                stroke='currentColor'
+                viewBox='0 0 24 24'
+                xmlns='http://www.w3.org/2000/svg'
               >
                 <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M5 10l7-7m0 0l7 7m-7-7v18"
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth='2'
+                  d='M5 10l7-7m0 0l7 7m-7-7v18'
                 ></path>
               </svg>
             </MessageButton>
