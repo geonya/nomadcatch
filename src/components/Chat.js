@@ -376,7 +376,6 @@ const Layout = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden;
 `;
 const Container = styled.div`
   max-width: 375px;

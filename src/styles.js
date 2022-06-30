@@ -50,6 +50,7 @@ table {
   border-spacing: 0;
 }
 body {
+  overflow: hidden;
   width:100%;
   height:100vh;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
